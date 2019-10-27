@@ -24,3 +24,4 @@ def make_goal(s):
 			cur = 0
 
 	return puzzle
+	
