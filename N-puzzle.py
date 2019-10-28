@@ -12,7 +12,7 @@ class Puzzle:
         arr_len = len(arr)
         self.size = int(arr_len**0.5)
         self.arr = arr
-        assert(self.size**2 == arr_len)
+        assert self.size**2 == arr_len
 
     def get_value(self, x: int, y: int) -> int:
         return self.arr[x + y * self.size]
@@ -21,10 +21,18 @@ class Puzzle:
         self.arr[x + y * self.size] = value
 
     def get_value_pos(self, value: int) -> list:
-        assert(value < len(self.arr))
+        assert value < len(self.arr)
         index = self.arr.index(value)
 
         return [index % self.size, index // self.size]
+
+
+def print_puzzle(puzzle: Puzzle):
+    for i in range(puzzle.size):
+        start_pos = i * puzzle.size
+        end_pos = start_pos + puzzle.size
+        # print one row
+        print(*puzzle.arr[start_pos: end_pos])
 
 
 def format_line(line):
@@ -41,7 +49,7 @@ def get_puzzle_data_lines_from_file(file: str) -> str:
     lines = [line for line in get_formated_lines(f.readlines()) if len(line) > 0]
     lines_len = len(lines)
 
-    assert(lines_len > 1 or int(lines[0]) + 1 != lines_len , "Wrong number of lines")
+    assert lines_len > 1 or int(lines[0]) + 1 != lines_len , "Wrong number of lines"
     # Puzzle format
     # 3
     # 6 8 0
@@ -60,8 +68,8 @@ def get_puzzle_from_file(file: str)-> Puzzle:
     puzzle_arr = []
     for line in puzzle_lines[1:]:
         puzzle_row = [int(number) for number in line.split(' ')]
-        assert(len(puzzle_row) != puzzle_size, f'Wrong number of values in a row: {puzzle_row}')
-        puzzle_arr.append(*puzzle_row)
+        assert len(puzzle_row) == puzzle_size, f'Wrong number of values in a row: {puzzle_row}, row size must be {puzzle_size}'
+        puzzle_arr += puzzle_row
 
     return Puzzle(puzzle_arr)
 
@@ -78,5 +86,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print(f'file: {args.file}')
-    print (get_puzzle_from_file(args.file))
+    p = get_puzzle_from_file(args.file)
+    print(p.arr)
+    print_puzzle(p)
 
