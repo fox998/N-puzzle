@@ -15,6 +15,9 @@ class Puzzle:
         self.arr = arr
         assert self.size**2 == arr_len
 
+    def __lt__(self, other):
+        return self.arr < other.arr
+
     def get_value(self, x: int, y: int) -> int:
         return self.arr[x + y * self.size]
 
@@ -68,7 +71,7 @@ def get_puzzle_from_file(file: str)-> Puzzle:
 
     puzzle_arr = []
     for line in puzzle_lines[1:]:
-        puzzle_row = [int(number) for number in line.split(' ')]
+        puzzle_row = [int(number) for number in line.split(' ') if len(number) > 0]
         assert len(puzzle_row) == puzzle_size, f'Wrong number of values in a row: {puzzle_row}, row size must be {puzzle_size}'
         puzzle_arr += puzzle_row
 
@@ -76,56 +79,148 @@ def get_puzzle_from_file(file: str)-> Puzzle:
 
 
 class BestScore:
-    def __init__(self, heuristic: int, parent: Puzzle):
-        self.heuristic = heuristic
+    def __init__(self, distance: int, parent: Puzzle):
+        self.distance = distance
         self.parent = parent
 
 
 #TODO: implement get_neighbors
 def get_neighbors(p: Puzzle)-> list:
-    return []
+    neighbors = []
+    zero_index = p.arr.index(0)
+    zero_pos_x = zero_index % p.size
+    zero_pos_y = zero_index // p.size
+
+    # right
+    if zero_pos_x < p.size - 1:
+        neighbor = p.arr[:]
+        neighbor[zero_index], neighbor[zero_index + 1] = neighbor[zero_index + 1], neighbor[zero_index]
+        neighbors.append(Puzzle(neighbor))
+
+    # left
+    if zero_pos_x > 0:
+        neighbor = p.arr[:]
+        neighbor[zero_index], neighbor[zero_index - 1] = neighbor[zero_index - 1], neighbor[zero_index]
+        neighbors.append(Puzzle(neighbor))
+
+    # down
+    if zero_pos_y < p.size - 1:
+        neighbor = p.arr[:]
+        neighbor[zero_index], neighbor[zero_index + p.size - 1] = neighbor[zero_index + p.size - 1], neighbor[zero_index]
+        neighbors.append(Puzzle(neighbor))
+
+    # up
+    if zero_pos_y > 0:
+        neighbor = p.arr[:]
+        neighbor[zero_index], neighbor[zero_index - p.size - 1] = neighbor[zero_index - p.size - 1], neighbor[zero_index]
+        neighbors.append(Puzzle(neighbor))
+
+    return neighbors
+
+
+def get_arr_hash(arr: list)->int:
+    arr_hash = 0
+    arr_len = len(arr)
+    for val in arr:
+        arr_hash = arr_hash * arr_len + int(val)
+
+    return arr_hash
 
 
 def a_star_algorithm(start: Puzzle, goal: Puzzle, heuristic_function):
     
-    heuristic = heuristic_function(start)
-    best_scores = dict({start: BestScore(heuristic, None)})
+    heuristic = heuristic_function(start, goal)
+    best_scores = dict({ get_arr_hash(start.arr): BestScore(0, None)})
     
     open_queue = PriorityQueue()
     open_queue.put((heuristic, start))
     
+
+    best_heuristic = 9
     while not open_queue.empty():
         value = open_queue.get()
         score = value[0]
         puzzle = value[1]
-        
-        if puzzle == goal:
+
+        #print('current')
+        #print_puzzle(puzzle)
+        best_heuristic = best_heuristic if best_heuristic < score else score
+        if puzzle.arr == goal.arr:
+            print(f'states number: {len(best_scores)}')
+            print(f'best heuristic: {best_heuristic}')
+            
+            print(f'puzzle')
+            print_puzzle(puzzle)
             return True
 
+        parent_score = best_scores[ get_arr_hash(puzzle.arr)].distance
         for neighbor in get_neighbors(puzzle):
-            neighbor_score = heuristic_function(neighbor) + score + 1
-            if neighbor not in best_scores.keys():
-                best_scores[neighbor] = BestScore(neighbor_score, puzzle)
+            neighbor_distance = parent_score + 1
+
+            neighbor_hash = get_arr_hash(neighbor.arr)
+            if neighbor_hash not in best_scores.keys():
+                best_scores[neighbor_hash] = BestScore(neighbor_distance, puzzle)
+                neighbor_score = heuristic_function(neighbor, goal) + neighbor_distance
                 open_queue.put((neighbor_score, neighbor))
-            elif neighbor_score < best_scores[neighbor].heuristic:
-                best_scores[neighbor] = BestScore(neighbor_score, puzzle)
+            elif neighbor_distance < best_scores[neighbor_hash].distance:
+                best_scores[neighbor_hash] = BestScore(neighbor_distance, puzzle)
+
+    print(f'states number: {len(best_scores)}')
+    print(f'best heuristic: {best_heuristic}')
 
     return False
 
 
+def heuristic_match(current: Puzzle, goal: Puzzle)->int:
+    matches_number = 0
+    for first, second  in zip(current.arr, goal.arr):
+        if first == second:
+            matches_number += 1
+
+    return goal.size**2 - matches_number
+
+
+def heuristic_square(current: Puzzle, goal: Puzzle)->int:
+    score = 0
+    for val  in current.arr:
+        first_pos = current.get_value_pos(val)
+        second_pos = goal.get_value_pos(val)
+        score += (first_pos[0] - second_pos[0])**2 + (first_pos[1] - second_pos[1])**2
+
+    return score
+
+
+def heuristic_addition(current: Puzzle, goal: Puzzle)->int:
+    score = 0
+    for first, second  in zip(current.arr, goal.arr):
+        first_pos = current.get_value_pos(first)
+        second_pos = goal.get_value_pos(first)
+        score += (first_pos[0] - second_pos[0])**2 + (first_pos[1] - second_pos[1])**2
+
+    return score
+
+
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
+    # parser = argparse.ArgumentParser()
 
-    parser.add_argument("file", type=str, help="File with puzzle or 'r' for rundoming the puzzle")
-    parser.add_argument("-u", "--unsolvable", action="store_true", default=False, help="Forces generation of an unsolvable puzzle. By default puzzle is solvable")
-    parser.add_argument("--size", type=int, default=3, help="Size of randomed puzzle. 3 by default")
-    parser.add_argument("-t", "--tests", action="store_true", default=False, help="Run the tests")
+    # parser.add_argument("file", type=str, help="File with puzzle or 'r' for rundoming the puzzle")
+    # parser.add_argument("-u", "--unsolvable", action="store_true", default=False, help="Forces generation of an unsolvable puzzle. By default puzzle is solvable")
+    # parser.add_argument("--size", type=int, default=3, help="Size of randomed puzzle. 3 by default")
+    # parser.add_argument("-t", "--tests", action="store_true", default=False, help="Run the tests")
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
 
-    print(f'file: {args.file}')
-    p = get_puzzle_from_file(args.file)
+    # print(f'file: {args.file}')
+    p = get_puzzle_from_file('test_puzzle_3_u')
     print(p.arr)
     print_puzzle(p)
+
+    # print('\nheuristic_square')
+    # res = a_star_algorithm(p, Puzzle(make_goal(p.size)), heuristic_square)
+    # print(res)
+
+    print('\nheuristic_match')
+    res = a_star_algorithm(p, Puzzle(make_goal(p.size)), heuristic_match)
+    print(res)
 
