@@ -5,6 +5,7 @@
 
 import argparse
 from make_goal import make_goal
+from queue import PriorityQueue
 
 
 class Puzzle:
@@ -74,14 +75,52 @@ def get_puzzle_from_file(file: str)-> Puzzle:
     return Puzzle(puzzle_arr)
 
 
+class BestScore:
+    def __init__(self, heuristic: int, parent: Puzzle):
+        self.heuristic = heuristic
+        self.parent = parent
+
+
+#TODO: implement get_neighbors
+def get_neighbors(p: Puzzle)-> list:
+    return []
+
+
+def a_star_algorithm(start: Puzzle, goal: Puzzle, heuristic_function):
+    
+    heuristic = heuristic_function(start)
+    best_scores = dict({start: BestScore(heuristic, None)})
+    
+    open_queue = PriorityQueue()
+    open_queue.put((heuristic, start))
+    
+    while not open_queue.empty():
+        value = open_queue.get()
+        score = value[0]
+        puzzle = value[1]
+        
+        if puzzle == goal:
+            return True
+
+        for neighbor in get_neighbors(puzzle):
+            neighbor_score = heuristic_function(neighbor) + score + 1
+            if neighbor not in best_scores.keys():
+                best_scores[neighbor] = BestScore(neighbor_score, puzzle)
+                open_queue.put((neighbor_score, neighbor))
+            elif neighbor_score < best_scores[neighbor].heuristic:
+                best_scores[neighbor] = BestScore(neighbor_score, puzzle)
+
+    return False
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("file", type=str, help="file with puzzle")
-    parser.add_argument("-s", "--solvable", action="store_true", default=False, help="Forces generation of a solvable puzzle. Overrides -u.")
-    parser.add_argument("-u", "--unsolvable", action="store_true", default=False, help="Forces generation of an unsolvable puzzle")
-    parser.add_argument("-i", "--iterations", type=int, default=10000, help="Number of passes")
+    parser.add_argument("file", type=str, help="File with puzzle or 'r' for rundoming the puzzle")
+    parser.add_argument("-u", "--unsolvable", action="store_true", default=False, help="Forces generation of an unsolvable puzzle. By default puzzle is solvable")
+    parser.add_argument("--size", type=int, default=3, help="Size of randomed puzzle. 3 by default")
+    parser.add_argument("-t", "--tests", action="store_true", default=False, help="Run the tests")
 
     args = parser.parse_args()
 
