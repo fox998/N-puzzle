@@ -160,7 +160,7 @@ def a_star_algorithm(start: Puzzle, goal: Puzzle, heuristic_function):
             neighbor_hash = get_arr_hash(neighbor.arr)
             if neighbor_hash not in best_scores.keys():
                 best_scores[neighbor_hash] = BestScore(neighbor_distance, puzzle)
-                neighbor_score = heuristic_function(neighbor, goal) + neighbor_distance
+                neighbor_score = heuristic_function(neighbor, goal) #+ neighbor_distance
                 open_queue.put((neighbor_score, neighbor))
             elif neighbor_distance < best_scores[neighbor_hash].distance:
                 best_scores[neighbor_hash] = BestScore(neighbor_distance, puzzle)
@@ -212,7 +212,7 @@ if __name__ == "__main__":
     # args = parser.parse_args()
 
     # print(f'file: {args.file}')
-    p = get_puzzle_from_file('test_puzzle_3_u')
+    p = get_puzzle_from_file('test_puzzle2')
     print(p.arr)
     print_puzzle(p)
 
