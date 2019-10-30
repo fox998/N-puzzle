@@ -134,21 +134,13 @@ def a_star_algorithm(start: Puzzle, goal: Puzzle, heuristic_function):
     
     open_queue = PriorityQueue()
     open_queue.put((heuristic, start))
-    
 
-    best_heuristic = 9
     while not open_queue.empty():
         value = open_queue.get()
-        score = value[0]
         puzzle = value[1]
 
-        #print('current')
-        #print_puzzle(puzzle)
-        best_heuristic = best_heuristic if best_heuristic < score else score
         if puzzle.arr == goal.arr:
             print(f'states number: {len(best_scores)}')
-            print(f'best heuristic: {best_heuristic}')
-            
             print(f'puzzle')
             print_puzzle(puzzle)
             return True
@@ -160,13 +152,10 @@ def a_star_algorithm(start: Puzzle, goal: Puzzle, heuristic_function):
             neighbor_hash = get_arr_hash(neighbor.arr)
             if neighbor_hash not in best_scores.keys():
                 best_scores[neighbor_hash] = BestScore(neighbor_distance, puzzle)
-                neighbor_score = heuristic_function(neighbor, goal) #+ neighbor_distance
+                neighbor_score = heuristic_function(neighbor, goal)
                 open_queue.put((neighbor_score, neighbor))
             elif neighbor_distance < best_scores[neighbor_hash].distance:
                 best_scores[neighbor_hash] = BestScore(neighbor_distance, puzzle)
-
-    print(f'states number: {len(best_scores)}')
-    print(f'best heuristic: {best_heuristic}')
 
     return False
 
@@ -185,19 +174,14 @@ def heuristic_square(current: Puzzle, goal: Puzzle)->int:
     for val  in current.arr:
         first_pos = current.get_value_pos(val)
         second_pos = goal.get_value_pos(val)
-        score += (first_pos[0] - second_pos[0])**2 + (first_pos[1] - second_pos[1])**2
+        distance_to_goal = (first_pos[0] - second_pos[0])**2 + (first_pos[1] - second_pos[1])**2
+        score += distance_to_goal
 
     return score
 
 
-def heuristic_addition(current: Puzzle, goal: Puzzle)->int:
-    score = 0
-    for first, second  in zip(current.arr, goal.arr):
-        first_pos = current.get_value_pos(first)
-        second_pos = goal.get_value_pos(first)
-        score += (first_pos[0] - second_pos[0])**2 + (first_pos[1] - second_pos[1])**2
-
-    return score
+def heuristic_pow(current: Puzzle, goal: Puzzle):
+    return heuristic_match(current, goal) ** heuristic_square(current, goal)
 
 
 if __name__ == "__main__":
@@ -212,15 +196,20 @@ if __name__ == "__main__":
     # args = parser.parse_args()
 
     # print(f'file: {args.file}')
-    p = get_puzzle_from_file('test_puzzle2')
+    p = get_puzzle_from_file('test_puzzle')
     print(p.arr)
     print_puzzle(p)
 
-    # print('\nheuristic_square')
-    # res = a_star_algorithm(p, Puzzle(make_goal(p.size)), heuristic_square)
-    # print(res)
+    print('\nheuristic_square')
+    res = a_star_algorithm(p, Puzzle(make_goal(p.size)), heuristic_pow)
+    print(res)
 
     print('\nheuristic_match')
     res = a_star_algorithm(p, Puzzle(make_goal(p.size)), heuristic_match)
     print(res)
+
+    print('\nheuristic_square')
+    res = a_star_algorithm(p, Puzzle(make_goal(p.size)), heuristic_square)
+    print(res)
+
 
