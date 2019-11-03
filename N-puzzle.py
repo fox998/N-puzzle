@@ -1,10 +1,10 @@
-#! C:\Users\afokin\AppData\Local\Programs\Python\Python38-32\python.exe
+#! /usr/bin/env python
 
 # Windows - C:\Users\afokin\AppData\Local\Programs\Python\Python38-32\python.exe
 # Mac - /usr/bin/env python
 
 import argparse
-from make_goal import make_goal
+from make_goal import (make_goal, make_puzzle)
 from queue import PriorityQueue
 
 
@@ -143,15 +143,27 @@ def print_arr_from_hash(puzzle_hash: int, size: int):
     print('')
 
 
-def print_path(best_scores : dict, from_hash: int, puzzle_size):
+def get_path(best_scores : dict, from_hash: int, puzzle_size):
         current_state = from_hash
         states = []
         while current_state is not None:
             states.append(current_state)
             current_state = best_scores[current_state].parent
 
-        for state in states[::-1]:
-            print_arr_from_hash(state, puzzle_size)
+        # for state in states[::-1]:
+        #     print_arr_from_hash(state, puzzle_size)
+        return states[::-1]
+
+
+
+
+
+class MetaData:
+    def __init__(self):
+        self.states_number = None
+        self.max_number_of_states = None
+        self.number_of_moves = None
+        self.is_solvable = None
 
 
 def a_star_algorithm(start: Puzzle, goal: Puzzle, heuristic_function):
@@ -171,13 +183,13 @@ def a_star_algorithm(start: Puzzle, goal: Puzzle, heuristic_function):
         parent_hash = get_arr_hash(puzzle.arr)
 
         if puzzle.arr == goal.arr:
-            print(f'states number: {len(best_scores)}')
-            print(f'Maximum number of states { max_number_of_states }')
-            print(f'Number of moves { parent_score }')
-            
-            #print_path(best_scores, get_arr_hash(goal.arr), goal.size)
-
-            return True
+            m = MetaData()
+            m.states_number = len(best_scores)
+            m.max_number_of_states = max_number_of_states
+            m.number_of_moves = parent_score
+            m.path = get_path(best_scores, get_arr_hash(goal.arr), goal.size)
+            m.is_solvable = True
+            return m
 
         for neighbor in get_neighbors(puzzle):
             neighbor_distance = parent_score + 1
@@ -191,7 +203,13 @@ def a_star_algorithm(start: Puzzle, goal: Puzzle, heuristic_function):
             elif neighbor_distance < best_scores[neighbor_hash].distance:
                 best_scores[neighbor_hash] = BestScore(neighbor_distance, parent_hash)
 
-    return False
+    m = MetaData()
+    m.states_number = len(best_scores)
+    m.max_number_of_states = max_number_of_states
+    m.number_of_moves = parent_score
+    m.path = get_path(best_scores, get_arr_hash(goal.arr), goal.size)
+    m.is_solvable = False
+    return m
 
 
 class SearchMetadata:
@@ -233,21 +251,34 @@ def heuristic_pow(current: Puzzle, goal: Puzzle, distance_fromstart : int):
     return (march_score ** square_score + distance_fromstart) if square_score > 0 else 0
 
 
+
+def get_puzzle(args)-> Puzzle:
+    if args.file != 'r':
+        print(f'from: {args.file}')
+        return get_puzzle_from_file(args.file)
+    else :
+        print(f'create random puzzle')
+        return Puzzle(make_puzzle(args.size, not args.unsolvable, 1000))
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
     parser.add_argument("file", type=str, help="File with puzzle or 'r' for rundoming the puzzle")
     parser.add_argument("-u", "--unsolvable", action="store_true", default=False, help="Forces generation of an unsolvable puzzle. By default puzzle is solvable")
-    parser.add_argument("--size", type=int, default=3, help="Size of randomed puzzle. 3 by default")
+    parser.add_argument("-s", "--size", type=int, default=3, help="Size of randomed puzzle. 3 by default")
     parser.add_argument("-t", "--tests", action="store_true", default=False, help="Run the tests")
+    parser.add_argument("--heuristic", type=int, default=0, help="choce heuristic function 0 - 2")
 
     args = parser.parse_args()
 
-    print(f'file: {args.file}')
-    p = get_puzzle_from_file(args.file)
-    #p = get_puzzle_from_file('test_puzzle3')
+    p = get_puzzle(args)
     
+
+    heuristic_functions = [heuristic_pow, heuristic_match, heuristic_square]
+    heuristic = heuristic_functions[args.heuristic]
+
     print('Starting puzzle:')
     print_puzzle(p)
 
@@ -255,16 +286,16 @@ if __name__ == "__main__":
     print(f'Goal:')
     print_puzzle(goal)
 
-    print('\nheuristic_pow')
-    res = a_star_algorithm(p, goal, heuristic_pow)
+    print(f'\n{heuristic.__name__}')
+    meta_data = a_star_algorithm(p, goal, heuristic)
     print(res)
 
-    print('\nheuristic_match')
-    res = a_star_algorithm(p, goal, heuristic_match)
-    print(res)
+    # print('\nheuristic_match')
+    # res = a_star_algorithm(p, goal, heuristic)
+    # print(res)
 
-    print('\nheuristic_square')
-    res = a_star_algorithm(p, goal, heuristic_square)
-    print(res)
+    # print('\nheuristic_square')
+    # res = a_star_algorithm(p, goal, heuristic)
+    # print(res)
 
 
